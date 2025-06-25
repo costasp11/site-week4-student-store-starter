@@ -3,6 +3,7 @@ import { useParams } from "react-router-dom";
 import axios from "axios";
 import NotFound from "../NotFound/NotFound";
 import { formatPrice } from "../../utils/format";
+import { productsAPI } from "../../utils/api";
 import "./ProductDetail.css";
 
 function ProductDetail({ addToCart, removeFromCart, getQuantityOfItemInCart }) {
@@ -12,6 +13,26 @@ function ProductDetail({ addToCart, removeFromCart, getQuantityOfItemInCart }) {
   const [isFetching, setIsFetching] = useState(false);
   const [error, setError] = useState(null);
 
+  // Fetch product data when component mounts or productId changes
+  useEffect(() => {
+    const fetchProduct = async () => {
+      setIsFetching(true);
+      setError(null);
+      try {
+        const productData = await productsAPI.getById(productId);
+        setProduct(productData);
+      } catch (err) {
+        console.error('Error fetching product:', err);
+        setError('Failed to load product details.');
+      } finally {
+        setIsFetching(false);
+      }
+    };
+
+    if (productId) {
+      fetchProduct();
+    }
+  }, [productId]);
 
   if (error) {
     return <NotFound />;

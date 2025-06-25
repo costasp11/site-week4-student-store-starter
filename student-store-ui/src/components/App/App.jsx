@@ -7,6 +7,7 @@ import Home from "../Home/Home";
 import ProductDetail from "../ProductDetail/ProductDetail";
 import NotFound from "../NotFound/NotFound";
 import { removeFromCart, addToCart, getQuantityOfItemInCart, getTotalItemsInCart } from "../../utils/cart";
+import { productsAPI, ordersAPI } from "../../utils/api";
 import "./App.css";
 
 function App() {
@@ -36,9 +37,70 @@ function App() {
     setSearchInputValue(event.target.value);
   };
 
-  const handleOnCheckout = async () => {
-  }
+  // Fetch products from API
+  const fetchProducts = async () => {
+    setIsFetching(true);
+    setError(null);
+    try {
+      const productsData = await productsAPI.getAll();
+      setProducts(productsData);
+    } catch (err) {
+      console.error('Error fetching products:', err);
+      setError('Failed to load products. Please try again later.');
+    } finally {
+      setIsFetching(false);
+    }
+  };
 
+  // Load products on component mount
+  useEffect(() => {
+    fetchProducts();
+  }, []);
+
+  const handleOnCheckout = async () => {
+    if (!userInfo.name || !userInfo.dorm_number) {
+      setError('Please fill in your name and dorm number before checkout.');
+      return;
+    }
+
+    if (Object.keys(cart).length === 0) {
+      setError('Your cart is empty. Please add some items before checkout.');
+      return;
+    }
+
+    setIsCheckingOut(true);
+    setError(null);
+
+    try {
+      // Convert cart items to order items format
+      const orderItems = Object.values(cart).map(item => ({
+        productId: item.id,
+        quantity: item.quantity,
+        price: item.price
+      }));
+
+      // Create order
+      const newOrder = await ordersAPI.create({
+        customer: userInfo.name,
+        status: 'pending',
+        orderItems: orderItems
+      });
+
+      setOrder(newOrder);
+      
+      // Clear cart after successful order
+      setCart({});
+      
+      // Close sidebar
+      setSidebarOpen(false);
+      
+    } catch (err) {
+      console.error('Error during checkout:', err);
+      setError('Checkout failed. Please try again.');
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
 
   return (
     <div className="App">
