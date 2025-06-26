@@ -16,7 +16,7 @@ function App() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [activeCategory, setActiveCategory] = useState("All Categories");
   const [searchInputValue, setSearchInputValue] = useState("");
-  const [userInfo, setUserInfo] = useState({ name: "", dorm_number: ""});
+  const [userInfo, setUserInfo] = useState({ name: "", email: ""});
   const [products, setProducts] = useState([]);
   const [cart, setCart] = useState({});
   const [isFetching, setIsFetching] = useState(false);
@@ -58,47 +58,88 @@ function App() {
   }, []);
 
   const handleOnCheckout = async () => {
-    if (!userInfo.name || !userInfo.dorm_number) {
-      setError('Please fill in your name and dorm number before checkout.');
+    console.log('🚀 Starting checkout process...');
+    console.log('👤 User info:', userInfo);
+    console.log('🛒 Cart contents:', cart);
+    
+    // Better validation with specific error messages
+    if (!userInfo.name || userInfo.name.trim() === '') {
+      setError('Please enter your name.');
+      console.log('❌ Validation failed: Missing name');
+      return;
+    }
+
+    if (!userInfo.email || userInfo.email.trim() === '') {
+      setError('Please enter your email.');
+      console.log('❌ Validation failed: Missing email');
       return;
     }
 
     if (Object.keys(cart).length === 0) {
       setError('Your cart is empty. Please add some items before checkout.');
+      console.log('❌ Validation failed: Empty cart');
       return;
     }
 
     setIsCheckingOut(true);
     setError(null);
+    console.log('⏳ Setting checkout state to true...');
 
     try {
       // Convert cart items to order items format
-      const orderItems = Object.values(cart).map(item => ({
-        productId: item.id,
-        quantity: item.quantity,
-        price: item.price
-      }));
+      const orderItems = Object.keys(cart).map((productId) => {
+        const product = products.find((p) => p.id === Number(productId));
+        return {
+          productId: Number(productId),
+          quantity: cart[productId],
+          price: product ? Number(product.price) : 0,
+        };
+      });
 
-      // Create order
-      const newOrder = await ordersAPI.create({
-        customer: userInfo.name,
+      console.log('📋 Prepared order items:', orderItems);
+
+      const orderData = {
+        customer: userInfo.name.trim(),
         status: 'pending',
         orderItems: orderItems
-      });
+      };
+
+      console.log('📤 Sending order to backend:', orderData);
+      console.log('🌐 API endpoint: POST /orders');
+
+      // Create order in PostgreSQL via backend API
+      const newOrder = await ordersAPI.create(orderData);
+
+      console.log('✅ Order created successfully in PostgreSQL:', newOrder);
+      console.log('🆔 Order ID:', newOrder.id);
+      console.log('💰 Total:', newOrder.total);
+      console.log('📦 Items count:', newOrder.orderItems?.length || 0);
 
       setOrder(newOrder);
       
       // Clear cart after successful order
       setCart({});
+      console.log('🧹 Cart cleared');
       
       // Close sidebar
       setSidebarOpen(false);
+      console.log('🎉 Checkout completed successfully!');
       
     } catch (err) {
-      console.error('Error during checkout:', err);
-      setError('Checkout failed. Please try again.');
+      console.error('❌ Error during checkout:', err);
+      console.error('❌ Error details:', err.response?.data || err.message);
+      
+      // More specific error messages
+      if (err.response?.status === 400) {
+        setError('Invalid data provided. Please check your information and try again.');
+      } else if (err.response?.status === 500) {
+        setError('Server error. Please try again later.');
+      } else {
+        setError('Checkout failed. Please try again.');
+      }
     } finally {
       setIsCheckingOut(false);
+      console.log('⏹️ Checkout process finished');
     }
   };
 

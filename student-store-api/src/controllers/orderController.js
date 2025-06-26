@@ -23,7 +23,15 @@ exports.getById = async (req, res) => {
 // create an order in the database
 
 exports.create = async (req, res) => {
+    console.log('🛒 Backend: Order creation request received');
+    console.log('📦 Request body:', req.body);
+    
     const { customer, status, orderItems } = req.body;
+
+    // Validation: orderItems must be a non-empty array
+    if (!Array.isArray(orderItems) || orderItems.length === 0) {
+        return res.status(400).json({ error: 'orderItems must be a non-empty array.' });
+    }
 
     // when an order is created, calculated total is automatically applied
     try {
@@ -32,16 +40,20 @@ exports.create = async (req, res) => {
             ? orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
             : 0;
 
+        console.log('💰 Calculated total:', calculatedTotal);
+        console.log('📋 Order items to create:', orderItems);
+
+        console.log('🗄️ Creating order in PostgreSQL...');
         const order = await prisma.order.create({
             data: {
-                customer,
-                status,
-                total: calculatedTotal, 
+                customer: customer,
+                status: status,
+                total: Number(calculatedTotal), // Ensure total is a number
                 orderItems: {
                     create: orderItems.map(item => ({
-                        product: { connect: { id: item.productId } },
-                        quantity: item.quantity,
-                        price: item.price
+                        product: { connect: { id: Number(item.productId) } },
+                        quantity: Number(item.quantity),
+                        price: Number(item.price)
                     }))
                 }
             },
@@ -53,9 +65,19 @@ exports.create = async (req, res) => {
                 }
             }
         });
+        
+        console.log('✅ Order successfully created in PostgreSQL!');
+        console.log('🆔 Order ID:', order.id);
+        console.log('👤 Customer:', order.customer);
+        console.log('💰 Total:', order.total);
+        console.log('📦 Items created:', order.orderItems.length);
+        
         return res.status(201).json(order);
     } catch (error) {
-        console.error("Error creating order:", error);
+        console.error("❌ Error creating order in PostgreSQL:", error);
+        console.error("❌ Error code:", error.code);
+        console.error("❌ Error message:", error.message);
+        
         if (error.code === 'P2025' || error.code === 'P2003') {
              return res.status(400).json({
                 error: 'Invalid product or data provided for order items.',

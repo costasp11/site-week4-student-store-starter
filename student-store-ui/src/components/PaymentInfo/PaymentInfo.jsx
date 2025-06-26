@@ -10,7 +10,7 @@ export default function PaymentInfo({ userInfo, setUserInfo, handleOnCheckout, i
         </span>
       </h3>
       <div className="input-field">
-        <label className="label">Student ID</label>
+        <label className="label">Name *</label>
         <div className="control ">
           <input
             className="input"
@@ -18,19 +18,21 @@ export default function PaymentInfo({ userInfo, setUserInfo, handleOnCheckout, i
             placeholder="Name"
             value={userInfo.name}
             onChange={(e) => setUserInfo((u) => ({ ...u, name: e.target.value }))}
+            required
           />
         </div>
       </div>
 
       <div className="input-field">
-        <label className="label">Dorm Room Number</label>
+        <label className="label">Email *</label>
         <div className="control">
           <input
             className="input"
             type="email"
             placeholder="Email"
-            value={userInfo.id}
+            value={userInfo.email}
             onChange={(e) => setUserInfo((u) => ({ ...u, email: e.target.value }))}
+            required
           />
         </div>
       </div>
@@ -50,12 +52,21 @@ export default function PaymentInfo({ userInfo, setUserInfo, handleOnCheckout, i
         </div>
       </div> */}
 
-      <p className="is-danger">{error}</p>
+      {error && <p className="is-danger">⚠️ {error}</p>}
 
       <div className="field">
         <div className="control">
-          <button className="button" disabled={isCheckingOut} onClick={handleOnCheckout}>
-            Submit
+          <button 
+            className="button" 
+            disabled={isCheckingOut} 
+            onClick={() => {
+              console.log('🛒 Submit button clicked!');
+              console.log('👤 User info:', userInfo);
+              console.log('📦 Cart items:', Object.keys(userInfo).length > 0 ? 'Has items' : 'Empty');
+              handleOnCheckout();
+            }}
+          >
+            {isCheckingOut ? 'Processing...' : 'Submit Order'}
           </button>
         </div>
       </div>
