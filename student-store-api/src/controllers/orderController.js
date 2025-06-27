@@ -22,10 +22,7 @@ exports.getById = async (req, res) => {
 }
 // create an order in the database
 
-exports.create = async (req, res) => {
-    console.log('🛒 Backend: Order creation request received');
-    console.log('📦 Request body:', req.body);
-    
+exports.create = async (req, res) => {    
     const { customer, status, orderItems } = req.body;
 
     // Validation: orderItems must be a non-empty array
@@ -40,10 +37,7 @@ exports.create = async (req, res) => {
             ? orderItems.reduce((sum, item) => sum + (item.quantity * item.price), 0)
             : 0;
 
-        console.log('💰 Calculated total:', calculatedTotal);
-        console.log('📋 Order items to create:', orderItems);
-
-        console.log('🗄️ Creating order in PostgreSQL...');
+        console.log('Creating order...');
         const order = await prisma.order.create({
             data: {
                 customer: customer,
@@ -66,24 +60,11 @@ exports.create = async (req, res) => {
             }
         });
         
-        console.log('✅ Order successfully created in PostgreSQL!');
-        console.log('🆔 Order ID:', order.id);
-        console.log('👤 Customer:', order.customer);
-        console.log('💰 Total:', order.total);
-        console.log('📦 Items created:', order.orderItems.length);
+        console.log('Order successfully created!');
         
         return res.status(201).json(order);
     } catch (error) {
-        console.error("❌ Error creating order in PostgreSQL:", error);
-        console.error("❌ Error code:", error.code);
-        console.error("❌ Error message:", error.message);
-        
-        if (error.code === 'P2025' || error.code === 'P2003') {
-             return res.status(400).json({
-                error: 'Invalid product or data provided for order items.',
-                details: error.message
-            });
-        }
+        console.error(" Error creating order in PostgreSQL:", error);
         return res.status(500).json({ error: 'Failed to create order', details: error.message });
     }
 };
